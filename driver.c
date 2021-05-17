@@ -84,9 +84,10 @@ main(int argc, char *argv[])
 	double 	usf;
 	smk		s;
 
-	char		filename  [128];
-
+	#ifndef NO_AUDIO_SUPPORT
+	char		filename[128];
 	FILE           *fpo[7] = {NULL};
+	#endif
 
 	if (argc != 2)
 	{
@@ -106,6 +107,7 @@ main(int argc, char *argv[])
 
 	log_printf("Opened file %s\nWidth: %lu\nHeight: %lu\nFrames: %lu\nFPS: %f\n", argv[1], w, h, f, 1000000.0 / usf);
 
+#ifndef NO_AUDIO_SUPPORT
 	unsigned char	a_t, a_c[7], a_d[7];
 	unsigned long	a_r[7];
 
@@ -116,10 +118,12 @@ main(int argc, char *argv[])
 	{
 		log_printf("Audio track %d: %u bits, %u channels, %luhz\n", i, a_d[i], a_c[i], a_r[i]);
 	}
+#endif
 
 	/* Turn on decoding for palette, video, and audio track 0 */
 	smk_enable_video(s, 1);
 
+#ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i++)
 	{
 		if (a_t & (1 << i))
@@ -132,6 +136,7 @@ main(int argc, char *argv[])
 			fpo[i] = NULL;
 		}
 	}
+#endif	
 
 	//Get a pointer to first frame
 
@@ -142,6 +147,7 @@ main(int argc, char *argv[])
 	smk_info_all(s, &cur_frame, NULL, NULL);
 	dump_bmp(smk_get_palette(s), smk_get_video(s), w, h, cur_frame);
 
+#ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i++)
 	{
 		if (fpo[i] != NULL)
@@ -149,6 +155,7 @@ main(int argc, char *argv[])
 			fwrite(smk_get_audio(s, i), smk_get_audio_size(s, i), 1, fpo[i]);
 		}
 	}
+#endif	
 	log_printf(" -> Frame %lu\n", cur_frame);
 
 
@@ -159,6 +166,7 @@ main(int argc, char *argv[])
 
 		dump_bmp(smk_get_palette(s), smk_get_video(s), w, h, cur_frame);
 
+#ifndef NO_AUDIO_SUPPORT
 		for (i = 0; i < 7; i++)
 		{
 			if (fpo[i] != NULL)
@@ -166,16 +174,19 @@ main(int argc, char *argv[])
 				fwrite(smk_get_audio(s, i), smk_get_audio_size(s, i), 1, fpo[i]);
 			}
 		}
+#endif		
 		log_fprintf(stderr," -> Frame %lu\n", cur_frame);
 		//Advance to next frame
 
 	}
 
+#ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i++)
 		if (fpo[i] != NULL)
 		{
 			fclose(fpo[i]);
 		}
+#endif		
 	smk_close(s);
 
 	return 0;

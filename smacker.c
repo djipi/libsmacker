@@ -118,6 +118,7 @@ struct smk_t
 	} video;
 
 	/* audio structure */
+#ifndef NO_AUDIO_SUPPORT
 	struct smk_audio_t
 	{
 		/* set if track exists in file */
@@ -142,6 +143,7 @@ struct smk_t
 		void* buffer;
 		unsigned long	buffer_size;
 	} audio[7];
+#endif
 };
 
 union smk_read_t
@@ -301,11 +303,13 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 		s->video.y_scale_mode = SMK_FLAG_Y_INTERLACE;
 	}
 
+#ifndef NO_AUDIO_SUPPORT
 	/* Max buffer size for each audio track - used to pre-allocate buffers */
 	for (temp_l = 0; temp_l < 7; temp_l ++)
 	{
 		smk_read_ul(s->audio[temp_l].max_buffer);
 	}
+#endif
 
 	/* Read size of "hufftree chunk" - save for later. */
 	smk_read_ul(tree_size);
@@ -319,6 +323,7 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 	}
 
 	/* read audio rate data */
+#ifndef NO_AUDIO_SUPPORT
 	for (temp_l = 0; temp_l < 7; temp_l ++)
 	{
 		smk_read_ul(temp_u);
@@ -345,6 +350,7 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 			s->audio[temp_l].rate = (temp_u & 0x00FFFFFF);
 		}
 	}
+#endif
 
 	/* Skip over Dummy field */
 	smk_read_ul(temp_u);
@@ -526,11 +532,13 @@ void smk_close(smk s)
 		smk_free(s->video.frame);
 	}
 
+#ifndef NO_AUDIO_SUPPORT
 	/* free audio sub-components */
 	for (u=0; u<7; u++)
 	{
 		smk_free(s->audio[u].buffer);
 	}
+#endif
 
 	smk_free(s->keyframe);
 	smk_free(s->frame_type);
@@ -612,6 +620,7 @@ error:
 	return -1;
 }
 
+#ifndef NO_AUDIO_SUPPORT
 char smk_info_audio(const smk object, unsigned char* track_mask, unsigned char channels[7], unsigned char bitdepth[7], unsigned long audio_rate[7])
 {
 	unsigned char i;
@@ -660,6 +669,7 @@ char smk_info_audio(const smk object, unsigned char* track_mask, unsigned char c
 error:
 	return -1;
 }
+#endif
 
 /* Enable-disable switches */
 char smk_enable_all(smk object, const unsigned char mask)
@@ -672,6 +682,7 @@ char smk_enable_all(smk object, const unsigned char mask)
 	/* set video-enable */
 	object->video.enable = (mask & 0x80);
 
+#ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i ++)
 	{
 		if (object->audio[i].exists)
@@ -679,6 +690,7 @@ char smk_enable_all(smk object, const unsigned char mask)
 			object->audio[i].enable = (mask & (1 << i));
 		}
 	}
+#endif
 
 	return 0;
 
@@ -698,6 +710,7 @@ error:
 	return -1;
 }
 
+#ifndef NO_AUDIO_SUPPORT
 char smk_enable_audio(smk object, const unsigned char track, const unsigned char enable)
 {
 	/* sanity check */
@@ -709,6 +722,7 @@ char smk_enable_audio(smk object, const unsigned char track, const unsigned char
 error:
 	return -1;
 }
+#endif
 
 const unsigned char* smk_get_palette(const smk object)
 {
@@ -728,6 +742,7 @@ const unsigned char* smk_get_video(const smk object)
 error:
 	return NULL;
 }
+#ifndef NO_AUDIO_SUPPORT
 const unsigned char* smk_get_audio(const smk object, const unsigned char t)
 {
 	smk_assert(object);
@@ -737,6 +752,8 @@ const unsigned char* smk_get_audio(const smk object, const unsigned char t)
 error:
 	return NULL;
 }
+#endif
+#ifndef NO_AUDIO_SUPPORT
 unsigned long smk_get_audio_size(const smk object, const unsigned char t)
 {
 	smk_assert(object);
@@ -746,6 +763,7 @@ unsigned long smk_get_audio_size(const smk object, const unsigned char t)
 error:
 	return 0;
 }
+#endif
 
 /* Decompresses a palette-frame. */
 static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned long size)
@@ -1051,6 +1069,7 @@ error:
 }
 
 /* Decompress audio track i. */
+#ifndef NO_AUDIO_SUPPORT
 static char smk_render_audio(struct smk_audio_t* s, unsigned char* p, unsigned long size)
 {
 	unsigned int j,k;
@@ -1228,6 +1247,7 @@ error:
 
 	return -1;
 }
+#endif
 
 /* "Renders" (unpacks) the frame at cur_frame
 	Preps all the image and audio pointers */
@@ -1304,6 +1324,7 @@ static char smk_render(smk s)
 	}
 
 	/* Unpack audio chunks */
+#ifndef NO_AUDIO_SUPPORT
 	for (track = 0; track < 7; track ++)
 	{
 		if (s->frame_type[s->cur_frame] & (0x02 << track))
@@ -1335,6 +1356,7 @@ static char smk_render(smk s)
 			s->audio[track].buffer_size = 0;
 		}
 	}
+#endif
 
 	/* Unpack video chunk */
 	if (s->video.enable)
