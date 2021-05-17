@@ -9,6 +9,13 @@
 		return a bit at a time from a raw block of bytes.
 */
 
+/* Compilations specific */
+#ifndef NO_LOG_SUPPORT
+#define LOGERROR		fprintf
+#else
+#define	LOGERROR(...)
+#endif
+
 #include "smk_bitstream.h"
 
 /* malloc and friends */
@@ -64,7 +71,7 @@ char _smk_bs_read_1(struct smk_bit_t* bs)
 	/* don't die when running out of bits, but signal */
 	if (bs->byte_num >= bs->size)
 	{
-		fprintf(stderr, "libsmacker::_smk_bs_read_1(bs): ERROR: bitstream (length=%lu) exhausted.\n", bs->size);
+		LOGERROR(stderr, "libsmacker::_smk_bs_read_1(bs): ERROR: bitstream (length=%lu) exhausted.\n", bs->size);
 		goto error;
 	}
 
@@ -98,7 +105,7 @@ short _smk_bs_read_8(struct smk_bit_t* bs)
 	/* don't die when running out of bits, but signal */
 	if (bs->byte_num + (bs->bit_num > 0) >= bs->size)
 	{
-		fprintf(stderr, "libsmacker::_smk_bs_read_8(bs): ERROR: bitstream (length=%lu) exhausted.\n", bs->size);
+		LOGERROR(stderr, "libsmacker::_smk_bs_read_8(bs): ERROR: bitstream (length=%lu) exhausted.\n", bs->size);
 		goto error;
 	}
 

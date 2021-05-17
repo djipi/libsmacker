@@ -12,6 +12,14 @@
 
 #include <stdio.h>
 
+#ifdef NO_LOG_SUPPORT
+#define log_printf(...)
+#define log_fprintf(...)
+#else
+#define log_printf	printf
+#define log_fprintf	fprintf
+#endif
+
 void
 dump_bmp(const unsigned char *pal, const unsigned char *image_data, unsigned int w, unsigned int h, unsigned int framenum)
 {
@@ -21,7 +29,7 @@ dump_bmp(const unsigned char *pal, const unsigned char *image_data, unsigned int
 	unsigned int	temp;
 	sprintf(filename, "bmp/out_%04u.bmp", framenum);
 	fp = fopen(filename, "wb");
-	if (!fp) { fprintf(stderr, "Failed to open %s for write\n", filename); return; }
+	if (!fp) { log_fprintf(stderr, "Failed to open %s for write\n", filename); return; }
 	fwrite("BM", 2, 1, fp);
 	temp = 1078 + (w * h);
 	fwrite(&temp, 4, 1, fp);
@@ -78,21 +86,21 @@ main(int argc, char *argv[])
 
 	if (argc != 2)
 	{
-		printf("Usage: %s file.smk\n", argv[0]);
+		log_printf("Usage: %s file.smk\n", argv[0]);
 		return -1;
 	}
 	/* s = smk_open(argv[1], SMK_MODE_DISK); */
 	s = smk_open_file(argv[1], SMK_MODE_MEMORY);
 	if (s == NULL)
 	{
-		printf("Errors encountered opening %s, exiting.\n", argv[1]);
+		log_printf("Errors encountered opening %s, exiting.\n", argv[1]);
 		return -1;
 	}
 	/* print some info about the file */
 	smk_info_all(s, NULL, &f, &usf);
 	smk_info_video(s, &w, &h, NULL);
 
-	printf("Opened file %s\nWidth: %lu\nHeight: %lu\nFrames: %lu\nFPS: %f\n", argv[1], w, h, f, 1000000.0 / usf);
+	log_printf("Opened file %s\nWidth: %lu\nHeight: %lu\nFrames: %lu\nFPS: %f\n", argv[1], w, h, f, 1000000.0 / usf);
 
 	unsigned char	a_t, a_c[7], a_d[7];
 	unsigned long	a_r[7];
@@ -102,7 +110,7 @@ main(int argc, char *argv[])
 	int		i;
 	for (i = 0; i < 7; i++)
 	{
-		printf("Audio track %d: %u bits, %u channels, %luhz\n", i, a_d[i], a_c[i], a_r[i]);
+		log_printf("Audio track %d: %u bits, %u channels, %luhz\n", i, a_d[i], a_c[i], a_r[i]);
 	}
 
 	/* Turn on decoding for palette, video, and audio track 0 */
@@ -137,7 +145,7 @@ main(int argc, char *argv[])
 			fwrite(smk_get_audio(s, i), smk_get_audio_size(s, i), 1, fpo[i]);
 		}
 	}
-	printf(" -> Frame %lu\n", cur_frame);
+	log_printf(" -> Frame %lu\n", cur_frame);
 
 
 	for (cur_frame = 1; cur_frame < f; cur_frame ++)
@@ -154,7 +162,7 @@ main(int argc, char *argv[])
 				fwrite(smk_get_audio(s, i), smk_get_audio_size(s, i), 1, fpo[i]);
 			}
 		}
-		fprintf(stderr," -> Frame %lu\n", cur_frame);
+		log_fprintf(stderr," -> Frame %lu\n", cur_frame);
 		//Advance to next frame
 
 	}

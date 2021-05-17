@@ -8,6 +8,17 @@
 		Implementation of Smacker Huffman coding trees.
 */
 
+/* Compilations specific */
+#ifndef NO_LOG_SUPPORT
+#define LOGERROR		fprintf
+#define fLOGERROR		fputs
+#define fLOGWARNING		fputs
+#else
+#define	LOGERROR(...)
+#define fLOGERROR(...)
+#define fLOGWARNING(...)
+#endif
+
 #include "smk_hufftree.h"
 
 /* malloc and friends */
@@ -48,7 +59,7 @@ struct smk_huff16_t
 { \
 	if (!(p = _smk_huff8_build_rec(bs))) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff8_build_rec(" #bs ", " #p ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff8_build_rec(" #bs ", " #p ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -147,7 +158,7 @@ struct smk_huff8_t* _smk_huff8_build(struct smk_bit_t* bs)
 	{
 		/* Got a bit, but it was not 1. In theory, there could be a smk file
 			without this particular tree. */
-		fputs("libsmacker::_smk_huff8_build(bs) - Warning: initial get_bit returned 0\n", stderr);
+		fLOGWARNING("libsmacker::_smk_huff8_build(bs) - Warning: initial get_bit returned 0\n", stderr);
 		goto error;
 	}
 
@@ -159,7 +170,7 @@ struct smk_huff8_t* _smk_huff8_build(struct smk_bit_t* bs)
 
 	if (bit)
 	{
-		fputs("libsmacker::_smk_huff8_build(bs) - ERROR: final get_bit returned 1\n", stderr);
+		fLOGERROR("libsmacker::_smk_huff8_build(bs) - ERROR: final get_bit returned 1\n", stderr);
 		goto error;
 	}
 
@@ -195,7 +206,7 @@ error: ;
 { \
 	if (!(p = _smk_huff16_build_rec(bs, cache, low8, hi8))) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff16_build_rec(" #bs ", " #cache ", " #low8 ", " #hi8 ", " #p ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff16_build_rec(" #bs ", " #cache ", " #low8 ", " #hi8 ", " #p ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -286,8 +297,8 @@ struct smk_huff16_t* _smk_huff16_build(struct smk_bit_t* bs)
 
 	if (!bit)
 	{
-		fputs("libsmacker::smk_huff16_build(bs) - ERROR: initial get_bit returned 0\n", stderr);
-		goto error;
+		fLOGERROR("libsmacker::smk_huff16_build(bs) - ERROR: initial get_bit returned 0\n", stderr);
+		goto error1;
 	}
 
 	/* build low-8-bits tree */
@@ -318,7 +329,7 @@ struct smk_huff16_t* _smk_huff16_build(struct smk_bit_t* bs)
 
 	if (bit)
 	{
-		fputs("libsmacker::smk_huff16_build(bs) - ERROR: final get_bit returned 1\n", stderr);
+		fLOGERROR("libsmacker::smk_huff16_build(bs) - ERROR: final get_bit returned 1\n", stderr);
 		goto error;
 	}
 
@@ -328,6 +339,7 @@ error:
 	smk_huff16_free(big);
 	smk_huff8_free(hi8);
 	smk_huff8_free(low8);
+error1:
 	return NULL;
 }
 

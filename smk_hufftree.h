@@ -27,7 +27,7 @@ struct smk_huff16_t;
 { \
 	if (!(t = _smk_huff8_build(bs))) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff8_build(" #bs ", " #t ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff8_build(" #bs ", " #t ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -40,7 +40,7 @@ struct smk_huff8_t* _smk_huff8_build(struct smk_bit_t* bs);
 { \
 	if ((short)(s = _smk_huff8_lookup(bs, t)) < 0) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff8_lookup(" #bs ", " #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff8_lookup(" #bs ", " #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -58,7 +58,7 @@ void smk_huff8_free(struct smk_huff8_t* t);
 { \
 	if (!(t = _smk_huff16_build(bs))) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff16_build(" #bs ", " #t ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff16_build(" #bs ", " #t ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -71,7 +71,7 @@ struct smk_huff16_t* _smk_huff16_build(struct smk_bit_t* bs);
 { \
 	if ((s = _smk_huff16_lookup(bs, t)) < 0) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_huff16_lookup(" #bs ", " #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_huff16_lookup(" #bs ", " #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }

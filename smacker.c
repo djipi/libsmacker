@@ -11,6 +11,24 @@
 
 #include "smacker.h"
 
+/* Compilations specific */
+#ifndef NO_REPORT_SUPPORT
+#define	REPORTERROR		perror
+#else
+#define	REPORTERROR(...)
+#endif
+#ifndef NO_LOG_SUPPORT
+#define LOGERROR		fprintf
+#define	LOGWARNING		fprintf
+#define fLOGERROR		fputs
+#define fLOGWARNING		fputs
+#else
+#define	LOGERROR(...)
+#define LOGWARNING(...)
+#define fLOGERROR(...)
+#define fLOGWARNING(...)
+#endif
+
 /* safe malloc and free */
 #include "smk_malloc.h"
 
@@ -140,7 +158,7 @@ static char smk_read_file(void* buf, const size_t size, FILE* fp)
 	size_t bytesRead = fread(buf,1,size,fp);
 	if (bytesRead != size)
 	{
-		fprintf(stderr, "libsmacker::smk_read_file(buf,%lu,fp) - ERROR: Short read, %lu bytes returned\n\tReason: %s\n", (unsigned long)size, (unsigned long)bytesRead, strerror(errno));
+		LOGERROR(stderr, "libsmacker::smk_read_file(buf,%lu,fp) - ERROR: Short read, %lu bytes returned\n\tReason: %s\n", (unsigned long)size, (unsigned long)bytesRead, strerror(errno));
 		return -1;
 	}
 	return 0;
@@ -152,7 +170,7 @@ static char smk_read_memory(void* buf, const unsigned long size, unsigned char**
 {
 	if (size > *p_size)
 	{
-		fprintf(stderr,"libsmacker::smk_read_memory(buf,%lu,p,%lu) - ERROR: Short read\n",(unsigned long)size, (unsigned long)*p_size);
+		LOGERROR(stderr,"libsmacker::smk_read_memory(buf,%lu,p,%lu) - ERROR: Short read\n",(unsigned long)size, (unsigned long)*p_size);
 		return -1;
 	}
 	memcpy(buf,*p,size);
@@ -176,7 +194,7 @@ static char smk_read_memory(void* buf, const unsigned long size, unsigned char**
 	} \
 	if (r < 0) \
 	{ \
-		fprintf(stderr,"libsmacker::smk_read(...) - Errors encountered on read, bailing out (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr,"libsmacker::smk_read(...) - Errors encountered on read, bailing out (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -219,7 +237,7 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 	smk_read(buf,3);
 	if (buf[0] != 'S' || buf[1] != 'M' || buf[2] != 'K')
 	{
-		fprintf(stderr,"libsmacker::smk_open_generic - ERROR: invalid SMKn signature (got: %s)\n",buf);
+		LOGERROR(stderr,"libsmacker::smk_open_generic - ERROR: invalid SMKn signature (got: %s)\n",buf);
 		goto error;
 	}
 
@@ -227,13 +245,13 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 	smk_read(&s->video.v,1);
 	if (s->video.v != '2' && s->video.v != '4')
 	{
-		fprintf(stderr,"libsmacker::smk_open_generic - Warning: invalid SMK version %c (expected: 2 or 4)\n",s->video.v);
+		LOGERROR(stderr,"libsmacker::smk_open_generic - Warning: invalid SMK version %c (expected: 2 or 4)\n",s->video.v);
 		/* take a guess */
 		if (s->video.v < '4')
 			s->video.v = '2';
 		else
 			s->video.v = '4';
-		fprintf(stderr,"\tProcessing will continue as type %c\n",s->video.v);
+		LOGERROR(stderr,"\tProcessing will continue as type %c\n",s->video.v);
 	}
 
 	/* width, height, total num frames */
@@ -278,7 +296,7 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 	{
 		if (s->video.y_scale_mode == SMK_FLAG_Y_DOUBLE)
 		{
-			fputs("libsmacker::smk_open_generic - Warning: SMK file specifies both Y-Double AND Y-Interlace.\n",stderr);
+			fLOGWARNING("libsmacker::smk_open_generic - Warning: SMK file specifies both Y-Double AND Y-Interlace.\n",stderr);
 		}
 		s->video.y_scale_mode = SMK_FLAG_Y_INTERLACE;
 	}
@@ -320,7 +338,7 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 			s->audio[temp_l].channels = ((temp_u & 0x10000000) ? 2 : 1);
 			if (temp_u & 0x0c000000)
 			{
-				fprintf(stderr,"libsmacker::smk_open_generic - Warning: audio track %ld is compressed with Bink (perceptual) Audio Codec: this is currently unsupported by libsmacker\n",temp_l);
+				LOGWARNING(stderr,"libsmacker::smk_open_generic - Warning: audio track %ld is compressed with Bink (perceptual) Audio Codec: this is currently unsupported by libsmacker\n",temp_l);
 				s->audio[temp_l].compress = 2;
 			}
 			/* Bits 25 & 24 are unused. */
@@ -400,8 +418,8 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 			s->source.file.chunk_offset[temp_u] = ftell(fp.file);
 			if (fseek(fp.file,s->chunk_size[temp_u],SEEK_CUR))
 			{
-				fprintf(stderr,"libsmacker::smk_open - ERROR: fseek to frame %lu not OK.\n",temp_u);
-				perror ("\tError reported was");
+				LOGERROR(stderr,"libsmacker::smk_open - ERROR: fseek to frame %lu not OK.\n",temp_u);
+				REPORTERROR("\tError reported was");
 				goto error;
 			}
 		}
@@ -430,7 +448,7 @@ smk smk_open_memory(const unsigned char* buffer, const unsigned long size)
 
 	if (!(s = smk_open_generic(0,fp,size,SMK_MODE_MEMORY)))
 	{
-		fprintf(stderr,"libsmacker::smk_open_memory(buffer,%lu) - ERROR: Fatal error in smk_open_generic, returning NULL.\n",size);
+		LOGERROR(stderr,"libsmacker::smk_open_memory(buffer,%lu) - ERROR: Fatal error in smk_open_generic, returning NULL.\n",size);
 	}
 
 	/* fall through, return s or null */
@@ -451,7 +469,7 @@ smk smk_open_filepointer(FILE* file, const unsigned char mode)
 
 	if (!(s = smk_open_generic(1,fp,0,mode)))
 	{
-		fprintf(stderr,"libsmacker::smk_open_filepointer(file,%u) - ERROR: Fatal error in smk_open_generic, returning NULL.\n",mode);
+		LOGERROR(stderr,"libsmacker::smk_open_filepointer(file,%u) - ERROR: Fatal error in smk_open_generic, returning NULL.\n",mode);
 		fclose(fp.file);
 		goto error;
 	}
@@ -479,8 +497,8 @@ smk smk_open_file(const char* filename, const unsigned char mode)
 
 	if (!(fp = fopen(filename,"rb")))
 	{
-		fprintf(stderr,"libsmacker::smk_open_file(%s,%u) - ERROR: could not open file (errno: %d)\n",filename,mode,errno);
-		perror ("\tError reported was");
+		LOGERROR(stderr,"libsmacker::smk_open_file(%s,%u) - ERROR: could not open file (errno: %d)\n",filename,mode,errno);
+		REPORTERROR("\tError reported was");
 		goto error;
 	}
 
@@ -551,7 +569,7 @@ char smk_info_all(const smk object, unsigned long* frame, unsigned long* frame_c
 	/* sanity check */
 	smk_assert(object);
 	if (!frame && !frame_count && !usf) {
-		fputs("libsmacker::smk_info_all(object,frame,frame_count,usf) - ERROR: Request for info with all-NULL return references\n",stderr);
+		fLOGERROR("libsmacker::smk_info_all(object,frame,frame_count,usf) - ERROR: Request for info with all-NULL return references\n",stderr);
 		goto error;
 	}
 	if (frame)
@@ -575,7 +593,7 @@ char smk_info_video(const smk object, unsigned long* w, unsigned long* h, unsign
 	smk_assert(object);
 	if (!w && !h && !y_scale_mode)
 	{
-		fputs("libsmacker::smk_info_all(object,w,h,y_scale_mode) - ERROR: Request for info with all-NULL return references\n",stderr);
+		fLOGERROR("libsmacker::smk_info_all(object,w,h,y_scale_mode) - ERROR: Request for info with all-NULL return references\n",stderr);
 		return -1;
 	}
 
@@ -603,7 +621,7 @@ char smk_info_audio(const smk object, unsigned char* track_mask, unsigned char c
 
 	if (!track_mask && !channels && !bitdepth && !audio_rate)
 	{
-		fputs("libsmacker::smk_info_audio(object,track_mask,channels,bitdepth,audio_rate) - ERROR: Request for info with all-NULL return references\n",stderr);
+		fLOGERROR("libsmacker::smk_info_audio(object,track_mask,channels,bitdepth,audio_rate) - ERROR: Request for info with all-NULL return references\n",stderr);
 		return -1;
 	}
 	if (track_mask)
@@ -772,7 +790,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 			/* check for overflow condition */
 			if (i + count > 256)
 			{
-				fprintf(stderr,"libsmacker::palette_render(s,p,size) - ERROR: overflow, 0x80 attempt to skip %d entries from %d\n",count,i);
+				LOGERROR(stderr,"libsmacker::palette_render(s,p,size) - ERROR: overflow, 0x80 attempt to skip %d entries from %d\n",count,i);
 				goto error;
 			}
 
@@ -787,7 +805,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 				to the next entries of the new palette. */
 			if (size < 2)
 			{
-				fputs("libsmacker::palette_render(s,p,size) - ERROR: 0x40 ran out of bytes for copy\n",stderr);
+				fLOGERROR("libsmacker::palette_render(s,p,size) - ERROR: 0x40 ran out of bytes for copy\n",stderr);
 				goto error;
 			}
 
@@ -803,7 +821,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 			if (i + count > 256 || src + count > 256 ||
 				(src < i && src + count > i) )
 			{
-				fprintf(stderr,"libsmacker::palette_render(s,p,size) - ERROR: overflow, 0x40 attempt to copy %d entries from %d to %d\n",count,src,i);
+				LOGERROR(stderr,"libsmacker::palette_render(s,p,size) - ERROR: overflow, 0x40 attempt to copy %d entries from %d to %d\n",count,src,i);
 				goto error;
 			}
 
@@ -818,7 +836,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 				Direct-set the next 3 bytes for palette index */
 			if (size < 3)
 			{
-				fprintf(stderr,"libsmacker::palette_render - ERROR: 0x3F ran out of bytes for copy, size=%lu\n", size);
+				LOGERROR(stderr,"libsmacker::palette_render - ERROR: 0x3F ran out of bytes for copy, size=%lu\n", size);
 				goto error;
 			}
 
@@ -826,7 +844,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 			{
 				if (*p > 0x3F)
 				{
-					fprintf(stderr,"libsmacker::palette_render - ERROR: palette index exceeds 0x3F (entry [%u][%u])\n", i, count);
+					LOGERROR(stderr,"libsmacker::palette_render - ERROR: palette index exceeds 0x3F (entry [%u][%u])\n", i, count);
 					goto error;
 				}
 				s->palette[i][count] = palmap[*p];
@@ -838,7 +856,7 @@ static char smk_render_palette(struct smk_video_t* s, unsigned char* p, unsigned
 
 	if (i < 256)
 	{
-		fprintf(stderr,"libsmacker::palette_render - ERROR: did not completely fill palette (idx=%u)\n",i);
+		LOGERROR(stderr,"libsmacker::palette_render - ERROR: did not completely fill palette (idx=%u)\n",i);
 		goto error;
 	}
 
@@ -1062,7 +1080,7 @@ static char smk_render_audio(struct smk_audio_t* s, unsigned char* p, unsigned l
 		/* need at least 4 bytes to process */
 		if (size < 4)
 		{
-			fputs("libsmacker::smk_render_audio() - ERROR: need 4 bytes to get unpacked output buffer size.\n",stderr);
+			fLOGERROR("libsmacker::smk_render_audio() - ERROR: need 4 bytes to get unpacked output buffer size.\n",stderr);
 			goto error;
 		}
 		/* chunk is compressed (huff-compressed dpcm), retrieve unpacked buffer size */
@@ -1082,19 +1100,19 @@ static char smk_render_audio(struct smk_audio_t* s, unsigned char* p, unsigned l
 
 		if (!bit)
 		{
-			fputs("libsmacker::smk_render_audio - ERROR: initial get_bit returned 0\n",stderr);
+			fLOGERROR("libsmacker::smk_render_audio - ERROR: initial get_bit returned 0\n",stderr);
 			goto error;
 		}
 
 		smk_bs_read_1(bs,bit);
 		if (s->channels != (bit == 1 ? 2 : 1))
 		{
-			fputs("libsmacker::smk_render - ERROR: mono/stereo mismatch\n",stderr);
+			fLOGERROR("libsmacker::smk_render - ERROR: mono/stereo mismatch\n",stderr);
 		}
 		smk_bs_read_1(bs,bit);
 		if (s->bitdepth != (bit == 1 ? 16 : 8))
 		{
-			fputs("libsmacker::smk_render - ERROR: 8-/16-bit mismatch\n",stderr);
+			fLOGERROR("libsmacker::smk_render - ERROR: 8-/16-bit mismatch\n",stderr);
 		}
 
 		/* build the trees */
@@ -1216,7 +1234,8 @@ error:
 static char smk_render(smk s)
 {
 	unsigned long i,size;
-	unsigned char* buffer = NULL,* p,track;
+	unsigned char* buffer = NULL, *p;
+	unsigned char track;
 
 	/* sanity check */
 	smk_assert(s);
@@ -1224,7 +1243,7 @@ static char smk_render(smk s)
 	/* Retrieve current chunk_size for this frame. */
 	if (!(i = s->chunk_size[s->cur_frame]))
 	{
-		fprintf(stderr,"libsmacker::smk_render(s) - Warning: frame %lu: chunk_size is 0.\n",s->cur_frame);
+		LOGWARNING(stderr,"libsmacker::smk_render(s) - Warning: frame %lu: chunk_size is 0.\n",s->cur_frame);
 		goto error;
 	}
 
@@ -1233,8 +1252,8 @@ static char smk_render(smk s)
 		/* Skip to frame in file */
 		if (fseek(s->source.file.fp,s->source.file.chunk_offset[s->cur_frame],SEEK_SET))
 		{
-			fprintf(stderr,"libsmacker::smk_render(s) - ERROR: fseek to frame %lu (offset %lu) failed.\n",s->cur_frame,s->source.file.chunk_offset[s->cur_frame]);
-			perror ("\tError reported was");
+			LOGERROR(stderr,"libsmacker::smk_render(s) - ERROR: fseek to frame %lu (offset %lu) failed.\n",s->cur_frame,s->source.file.chunk_offset[s->cur_frame]);
+			REPORTERROR("\tError reported was");
 			goto error;
 		}
 
@@ -1244,7 +1263,7 @@ static char smk_render(smk s)
 		/* Read into buffer */
 		if ( smk_read_file(buffer,s->chunk_size[s->cur_frame],s->source.file.fp) < 0)
 		{
-			fprintf(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu (offset %lu): smk_read had errors.\n",s->cur_frame,s->source.file.chunk_offset[s->cur_frame]);
+			LOGERROR(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu (offset %lu): smk_read had errors.\n",s->cur_frame,s->source.file.chunk_offset[s->cur_frame]);
 			goto error;
 		}
 	}
@@ -1253,7 +1272,7 @@ static char smk_render(smk s)
 		/* Just point buffer at the right place */
 		if (!s->source.chunk_data[s->cur_frame])
 		{
-			fprintf(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: memory chunk is a NULL pointer.\n",s->cur_frame);
+			LOGERROR(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: memory chunk is a NULL pointer.\n",s->cur_frame);
 			goto error;
 		}
 		buffer = s->source.chunk_data[s->cur_frame];
@@ -1267,7 +1286,7 @@ static char smk_render(smk s)
 		/* need at least 1 byte to process */
 		if (!i)
 		{
-			fprintf(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: insufficient data for a palette rec.\n",s->cur_frame);
+			LOGERROR(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: insufficient data for a palette rec.\n",s->cur_frame);
 			goto error;
 		}
 
@@ -1292,7 +1311,7 @@ static char smk_render(smk s)
 			/* need at least 4 byte to process */
 			if (i < 4)
 			{
-				fprintf(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: insufficient data for audio[%u] rec.\n",s->cur_frame,track);
+				LOGERROR(stderr,"libsmacker::smk_render(s) - ERROR: frame %lu: insufficient data for audio[%u] rec.\n",s->cur_frame,track);
 				goto error;
 			}
 
@@ -1349,7 +1368,7 @@ char smk_first(smk s)
 	s->cur_frame = 0;
 	if ( smk_render(s) < 0)
 	{
-		fprintf(stderr,"libsmacker::smk_first(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
+		LOGWARNING(stderr,"libsmacker::smk_first(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
 		goto error;
 	}
 
@@ -1370,7 +1389,7 @@ char smk_next(smk s)
 		s->cur_frame ++;
 		if ( smk_render(s) < 0)
 		{
-			fprintf(stderr,"libsmacker::smk_next(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
+			LOGWARNING(stderr,"libsmacker::smk_next(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
 			goto error;
 		}
 		if (s->cur_frame + 1 == (s->f + s->ring_frame))
@@ -1384,7 +1403,7 @@ char smk_next(smk s)
 		s->cur_frame = 1;
 		if ( smk_render(s) < 0)
 		{
-			fprintf(stderr,"libsmacker::smk_next(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
+			LOGWARNING(stderr,"libsmacker::smk_next(s) - Warning: frame %lu: smk_render returned errors.\n",s->cur_frame);
 			goto error;
 		}
 		if (s->cur_frame + 1 == (s->f + s->ring_frame))
@@ -1416,7 +1435,7 @@ char smk_seek_keyframe(smk s, unsigned long f)
 	/* render the frame: we're ready */
 	if (smk_render(s) < 0)
 	{
-		fprintf(stderr,"libsmacker::smk_seek_keyframe(s,%lu) - Warning: frame %lu: smk_render returned errors.\n",f,s->cur_frame);
+		LOGWARNING(stderr,"libsmacker::smk_seek_keyframe(s,%lu) - Warning: frame %lu: smk_render returned errors.\n",f,s->cur_frame);
 		goto error;
 	}
 

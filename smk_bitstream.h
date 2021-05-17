@@ -25,7 +25,7 @@ struct smk_bit_t* smk_bs_init(const unsigned char* b, unsigned long size);
 { \
 	if ((char)(uc = _smk_bs_read_1(t)) < 0) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_bs_read_1(" #t ", " #uc ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_bs_read_1(" #t ", " #uc ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }
@@ -39,7 +39,7 @@ char _smk_bs_read_1(struct smk_bit_t* bs);
 { \
 	if ((short)(s = _smk_bs_read_8(t)) < 0) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_bs_read_8(" #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		LOGERROR(stderr, "libsmacker::smk_bs_read_8(" #t ", " #s ") - ERROR (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
 		goto error; \
 	} \
 }

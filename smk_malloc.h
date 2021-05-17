@@ -25,14 +25,18 @@
 	Verbose assert:
 		branches to an error block if pointer is null
 */
+#if defined(NDEBUG) || defined(NO_SMK_ASSERT)
+#define smk_assert(p)
+#else
 #define smk_assert(p) \
 { \
 	if (!p) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_assert(" #p "): ERROR: NULL POINTER at line %lu, file %s\n", (unsigned long)__LINE__, __FILE__); \
+		LOGERROR(stderr, "libsmacker::smk_assert(" #p "): ERROR: NULL POINTER at line %lu, file %s\n", (unsigned long)__LINE__, __FILE__); \
 		goto error; \
 	} \
 }
+#endif
 
 /**
 	Safe free: attempts to prevent double-free by setting pointer to NULL.
@@ -68,7 +72,7 @@
 	p = calloc(1, x); \
 	if (!p) \
 	{ \
-		fprintf(stderr, "libsmacker::smk_malloc(" #p ", %lu) - ERROR: calloc() returned NULL (file: %s, line: %lu)\n\tReason: [%d] %s\n", \
+		LOGERROR(stderr, "libsmacker::smk_malloc(" #p ", %lu) - ERROR: calloc() returned NULL (file: %s, line: %lu)\n\tReason: [%d] %s\n", \
 			(unsigned long) (x), __FILE__, (unsigned long)__LINE__, errno, strerror(errno)); \
 		exit(EXIT_FAILURE); \
 	} \
