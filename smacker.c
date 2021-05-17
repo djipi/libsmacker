@@ -154,6 +154,7 @@ union smk_read_t
 
 /* An fread wrapper: consumes N bytes, or returns -1
 	on failure (when size doesn't match expected) */
+#ifndef NO_FILE_SUPPORT
 static char smk_read_file(void* buf, const size_t size, FILE* fp)
 {
 	/* don't bother checking buf or fp, fread does it for us */
@@ -165,6 +166,7 @@ static char smk_read_file(void* buf, const size_t size, FILE* fp)
 	}
 	return 0;
 }
+#endif
 
 /* A memcpy wrapper: consumes N bytes, or returns -1
 	on failure (when size too low) */
@@ -184,6 +186,7 @@ static char smk_read_memory(void* buf, const unsigned long size, unsigned char**
 /* Helper functions to do the reading, plus
 	byteswap from LE to host order */
 /* read n bytes from (source) into ret */
+#ifndef NO_FILE_SUPPORT
 #define smk_read(ret,n) \
 { \
 	if (m) \
@@ -200,6 +203,16 @@ static char smk_read_memory(void* buf, const unsigned long size, unsigned char**
 		goto error; \
 	} \
 }
+#else
+#define smk_read(ret,n) \
+{ \
+	if ((smk_read_memory(ret,n,&fp.ram,&size))) \
+	{ \
+		LOGERROR(stderr,"libsmacker::smk_read(...) - Errors encountered on read, bailing out (file: %s, line: %lu)\n", __FILE__, (unsigned long)__LINE__); \
+		goto error; \
+	} \
+}
+#endif
 
 /* Calls smk_read, but returns a ul */
 #define smk_read_ul(p) \
@@ -222,7 +235,9 @@ static smk smk_open_generic(const unsigned char m, union smk_read_t fp, unsigned
 	unsigned long temp_u;
 
 	/* r is used by macros above for return code */
+#ifndef NO_FILE_SUPPORT
 	char r;
+#endif
 	unsigned char buf[4] = {'\0'};
 
 	/* video hufftrees are stored as a large chunk (bitstream)
@@ -463,6 +478,7 @@ error:
 }
 
 /* open an smk (from a file) */
+#ifndef NO_FILE_SUPPORT
 smk smk_open_filepointer(FILE* file, const unsigned char mode)
 {
 	smk s = NULL;
@@ -493,8 +509,10 @@ smk smk_open_filepointer(FILE* file, const unsigned char mode)
 error:
 	return s;
 }
+#endif
 
 /* open an smk (from a file) */
+#ifndef NO_FILE_SUPPORT
 smk smk_open_file(const char* filename, const unsigned char mode)
 {
 	FILE* fp;
@@ -515,6 +533,7 @@ smk smk_open_file(const char* filename, const unsigned char mode)
 error:
 	return NULL;
 }
+#endif
 
 /* close out an smk file and clean up memory */
 void smk_close(smk s)
@@ -543,6 +562,7 @@ void smk_close(smk s)
 	smk_free(s->keyframe);
 	smk_free(s->frame_type);
 
+#ifndef NO_FILE_SUPPORT
 	if (s->mode == SMK_MODE_DISK)
 	{
 		/* disk-mode */
@@ -553,6 +573,7 @@ void smk_close(smk s)
 		smk_free(s->source.file.chunk_offset);
 	}
 	else
+#endif
 	{
 		/* mem-mode */
 		if (s->source.chunk_data != NULL)
@@ -1267,6 +1288,7 @@ static char smk_render(smk s)
 		goto error;
 	}
 
+#ifndef NO_FILE_SUPPORT
 	if (s->mode == SMK_MODE_DISK)
 	{
 		/* Skip to frame in file */
@@ -1288,6 +1310,7 @@ static char smk_render(smk s)
 		}
 	}
 	else
+#endif
 	{
 		/* Just point buffer at the right place */
 		if (!s->source.chunk_data[s->cur_frame])
