@@ -8,9 +8,9 @@
  */
 
 
-#include "smacker.h"
-
 #include <stdio.h>
+#include <string.h>
+#include "smacker.h"
 
 #ifdef NO_LOG_SUPPORT
 #define log_printf(...)
@@ -94,6 +94,8 @@ main(int argc, char *argv[])
 		log_printf("Usage: %s file.smk\n", argv[0]);
 		return -1;
 	}
+	else
+	{
 	/* s = smk_open(argv[1], SMK_MODE_DISK); */
 	s = smk_open_file(argv[1], SMK_MODE_MEMORY);
 	if (s == NULL)
@@ -101,6 +103,8 @@ main(int argc, char *argv[])
 		log_printf("Errors encountered opening %s, exiting.\n", argv[1]);
 		return -1;
 	}
+		else
+		{
 	/* print some info about the file */
 	smk_info_all(s, NULL, &f, &usf);
 	smk_info_video(s, &w, &h, NULL);
@@ -182,12 +186,16 @@ main(int argc, char *argv[])
 
 #ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i++)
+	{
 		if (fpo[i] != NULL)
 		{
 			fclose(fpo[i]);
 		}
+			}
 #endif		
 	smk_close(s);
 
 	return 0;
+		}
+	}
 }
