@@ -20,6 +20,7 @@
 #define log_fprintf	fprintf
 #endif
 
+#ifndef NO_EXPORT_BMP
 void
 dump_bmp(const unsigned char *pal, const unsigned char *image_data, unsigned int w, unsigned int h, unsigned int framenum)
 {
@@ -72,6 +73,9 @@ dump_bmp(const unsigned char *pal, const unsigned char *image_data, unsigned int
 
 	fclose(fp);
 }
+#else
+#define dump_bmp(...)
+#endif
 
 int
 main(int argc, char *argv[])
