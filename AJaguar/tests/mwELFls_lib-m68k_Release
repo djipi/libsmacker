@@ -1,0 +1,74 @@
+/* JagELFls script for ELF Debug executable */
+
+/* Memory description */
+MEMORY
+{
+	ram (rw) : ORIGIN = 0x4000 , LENGTH = 0x1FC000					/* Jaguar 2MB RAM information */
+	rom (rx) : ORIGIN = 0x802000 , LENGTH = 0x5FE000				/* Jaguar 6MB ROM information */
+	dbg	     : ORIGIN = 0, LENGTH = 0x7FFFFF
+}
+	
+/* Sections opening */
+SECTIONS
+{
+	.bss (NOLOAD):
+	{
+		PROVIDE(__bss_start__ = ALIGN(2));							/* Alignement for the BSS RAZ */
+		*(.sbss SBSS);												/* Small-Short BSS */
+		*(.scommon SCOMMON);
+		*(.bss BSS);
+		*(.udata UDATA);
+		*(.common COMMON);
+		PROVIDE(__bss_end__ = ALIGN(2));							/* Alignement for the BSS RAZ */
+		PROVIDE(__bss_size__ = (SIZEOF(.bss)+3) & 0xFFFFFC);		/* BSS size with alignement on 4 bytes*/
+	} >ram
+	
+	.text:
+	{
+		/* . = ALIGN(2); */											/* M68000 preference alignement */
+		*(.text* CODE);													/* Code section */
+		/* *(.text.startup CODE); */								/* Code section */
+	} >rom
+
+	.data:
+	{
+		. = ALIGN(2);												/* M68000 preference alignement */
+		*(.rodata* RODATA);											/* Read-only Data section */
+		. = ALIGN(2);												/* M68000 preference alignement */
+		*(.data DATA);												/* Data section */
+		/* . = ALIGN(2);	*/										/* M68000 preference alignement */
+		/* *(.sdata SDATA);	*/										/* Static Data section */
+	} >rom
+	
+	/* Initialized data sections goes into RAM, load LMA copy after code */
+	PROVIDE(__slmadata = ALIGN(2));
+	.mdata __bss_end__: AT (__slmadata)
+	{
+		PROVIDE(__svmadata = __bss_end__);
+		*(.mwjagdata DATA);											/* LMA data sections for mw Jaguar specific */
+		*(.mwwindata DATA);
+		*(.mwdriversdata DATA);
+		*(.mwdemosmwindata DATA);
+		PROVIDE(__silmadata = (SIZEOF(.mdata)+3) & 0xFFFFFC);
+	} >ram AT>rom
+
+	.heap (NOLOAD):
+	{
+		PROVIDE(__HeapBase = ALIGN(2));								/* M68000 preference alignement */
+		*(.heap HEAP);
+	} >ram
+
+	.stack:
+	{
+		PROVIDE(__Stack = 0x200000);
+	} >ram
+	
+	/* DWARF debug sections. */
+	/* Symbols in the DWARF debugging sections are relative to the beginning of the section so we begin them at 0. */
+
+	/* DWARF 2 */
+	.comment 0:
+	{
+		*(.comment);												/* ? */
+	} >dbg	
+}

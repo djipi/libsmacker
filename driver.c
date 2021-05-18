@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "smacker.h"
+#ifdef AJAGUAR
+#include "JAGUAR.H"
+#endif
 
 #ifdef NO_LOG_SUPPORT
 #define log_printf(...)
@@ -18,6 +21,10 @@
 #else
 #define log_printf	printf
 #define log_fprintf	fprintf
+#endif
+
+#ifdef AJAGUAR
+extern char ajag_screen[];
 #endif
 
 #ifndef NO_EXPORT_BMP
@@ -149,7 +156,28 @@ main(int argc, char *argv[])
 	unsigned long	cur_frame;
 
 	smk_info_all(s, &cur_frame, NULL, NULL);
+#ifdef AJAGUAR
+			//while (1)
+			{
+				// copy the picture to screen
+				memcpy(ajag_screen, smk_get_video(s), (w * h));
+				//for (int i = 0; i < 64000; i++)
+				//{
+				//	ajag_screen[i] = i & 0xff;
+				//}
+
+				// set palette
+				unsigned short int *Ptr = (unsigned short int *)CLUT;
+				unsigned char *pal = smk_get_palette(s);
+				for (int i = 0; i < 256; i++)
+				{
+					// *Ptr++ = ((pal->r >> 3) << 11) | ((pal->b >> 3) << 6) | (pal->g >> 2);
+					*Ptr++ = ((*pal++ >> 3) << 11) | (*pal++ >> 2) | ((*pal++ >> 3) << 6);
+				}
+			}
+#else
 	dump_bmp(smk_get_palette(s), smk_get_video(s), w, h, cur_frame);
+#endif
 
 #ifndef NO_AUDIO_SUPPORT
 	for (i = 0; i < 7; i++)

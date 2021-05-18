@@ -1,0 +1,139 @@
+/* JagELFls script for ELF Debug executable */
+
+/* Memory description */
+MEMORY
+{
+	ram (rw) : ORIGIN = 0x4000 , LENGTH = 0x1FC000					/* Jaguar 2MB RAM information */
+	rom (rx) : ORIGIN = 0x802000 , LENGTH = 0x5FE000				/* Jaguar 6MB ROM information */
+	dbg	     : ORIGIN = 0, LENGTH = 0x7FFFFF
+}
+	
+/* Sections opening */
+SECTIONS
+{
+	.bss (NOLOAD):
+	{
+		PROVIDE(__bss_start__ = ALIGN(2));							/* Alignement for the BSS RAZ */
+		*(.sbss SBSS);												/* Small-Short BSS */
+		*(.scommon SCOMMON);
+		*(.bss BSS);
+		*(.udata UDATA);
+		*(.common COMMON);
+		PROVIDE(__bss_end__ = ALIGN(2));							/* Alignement for the BSS RAZ */
+		PROVIDE(__bss_size__ = (SIZEOF(.bss)+3) & 0xFFFFFC);		/* BSS size with alignement on 4 bytes*/
+	} >ram
+	
+	.text:
+	{
+		/* . = ALIGN(2); */											/* M68000 preference alignement */
+		*(.text	CODE);												/* Code section */
+	} >rom
+
+	.data:
+	{
+		. = ALIGN(2);												/* M68000 preference alignement */
+		*(.rodata RODATA);											/* Read-only Data section */
+		. = ALIGN(2);												/* M68000 preference alignement */
+		*(.data DATA);												/* Data section */
+		/* . = ALIGN(2);	*/										/* M68000 preference alignement */
+		/* *(.sdata SDATA);	*/										/* Static Data section */
+	} >rom
+	
+	/* Initialized data sections goes into RAM, load LMA copy after code */
+	PROVIDE(__slmadata = ALIGN(2));
+	.mdata __bss_end__: AT (__slmadata)
+	{
+		PROVIDE(__svmadata = __bss_end__);
+		*(.mwjagdata DATA);											/* LMA data sections for mw Jaguar specific */
+		*(.mwwindata DATA);
+		*(.mwdriversdata DATA);
+		*(.mwdemosmwindata DATA);
+		PROVIDE(__silmadata = (SIZEOF(.mdata)+3) & 0xFFFFFC);
+	} >ram AT>rom
+
+	.heap (NOLOAD):
+	{
+		PROVIDE(__HeapBase = ALIGN(2));								/* M68000 preference alignement */
+		*(.heap HEAP);
+	} >ram
+
+	.stack:
+	{
+		PROVIDE(__Stack = 0x200000);
+	} >ram
+	
+	/* DWARF debug sections. */
+	/* Symbols in the DWARF debugging sections are relative to the beginning of the section so we begin them at 0. */
+
+	/* DWARF 1 */
+	.debug 0:
+	{
+		*(.debug);													/* ? */
+	} >dbg
+	.line 0:
+	{
+		*(.line);													/* ? */
+	} >dbg
+
+	/* GNU DWARF 1 extensions */
+	.debug_srcinfo 0:
+	{
+		*(.debug_srcinfo);											/* ? */
+	} >dbg
+	.debug_sfnames 0:
+	{
+		*(.debug_sfnames);											/* ? */
+	} >dbg
+
+	/* DWARF 1.1 and DWARF 2 */
+	.debug_aranges 0:
+	{
+		*(.debug_aranges);											/* Lookup table for mapping addresses to compilation units */
+	} >dbg
+	.debug_ranges 0:
+	{
+		*(.debug_ranges);											/* Address ranges used in the DW_AT_ranges attributes */
+	} >dbg
+	.debug_pubnames 0:
+	{
+		*(.debug_pubnames);											/* Lookup table for global objects and functions */
+	} >dbg
+	.debug_pubtypes 0:
+	{
+		*(.debug_pubtypes);											/* Lookup table for global types */
+	} >dbg
+
+	/* DWARF 2 */
+	.debug_info 0:
+	{
+		*(.debug_info .gnu.linkonce.wi.*);							/* Core DWARF information section */
+	} >dbg
+	.debug_abbrev 0:
+	{
+		*(.debug_abbrev);											/* Abbreviations used in the .debug_info section */
+	} >dbg
+	.debug_line 0:
+	{
+		*(.debug_line);												/* Line number information */
+	} >dbg
+	.debug_frame 0:
+	{
+		*(.debug_frame);											/* Call frame information */
+	} >dbg
+	.debug_str 0:
+	{
+		*(.debug_str);												/* String table used in .debug_info */
+	} >dbg
+	.debug_loc 0:
+	{
+		*(.debug_loc);												/* Location lists used in the DW_AT_location attributes */
+	} >dbg
+	.debug_macinfo 0:
+	{
+		*(.debug_macinfo);											/* Macro information */
+	} >dbg
+	.comment 0:
+	{
+		*(.comment);												/* ? */
+	} >dbg
+}
